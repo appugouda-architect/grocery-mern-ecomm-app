@@ -1,31 +1,20 @@
-FROM node:alpine AS build
-
-# Declare build time environment variables
-ARG REACT_APP_NODE_ENV
-ARG REACT_APP_SERVER_BASE_URL
+# ── Stage 1: build ──────────────────────────────────────────────
+FROM node:18-alpine AS build
 ARG VITE_BACKEND_URL
-
-# Set default values for environment variables
-ENV REACT_APP_NODE_ENV=$REACT_APP_NODE_ENV
-ENV REACT_APP_SERVER_BASE_URL=$REACT_APP_SERVER_BASE_URL
 ENV VITE_BACKEND_URL=$VITE_BACKEND_URL
-
-# Build App
 WORKDIR /app
 COPY package*.json ./
-RUN npm install
-# Copy everything except .env file to avoid overriding build args
+RUN npm ci
 COPY . .
-# Remove .env file if it exists to ensure build args take precedence
-RUN rm -f .env || true
+RUN rm -f .env .env.*
 RUN npm run build
 
-# Serve with Nginx
-FROM nginx:1.23-alpine
-# Copy custom nginx configuration
+# ── Stage 2: serve ──────────────────────────────────────────────
+FROM nginx:1.25-alpine
+RUN rm /etc/nginx/conf.d/default.conf
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-WORKDIR /usr/share/nginx/html
-RUN rm -rf *
-COPY --from=build /app/dist .
+COPY --from=build /app/dist /usr/share/nginx/html
 EXPOSE 80
-ENTRYPOINT [ "nginx", "-g", "daemon off;" ]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget -qO- http://localhost/ || exit 1
+CMD ["nginx","-g","daemon off;"]

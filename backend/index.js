@@ -19,16 +19,30 @@ await connectCloudinary();
 
 // allow multiple origins
 const allowedOrigins = process.env.ALLOWED_ORIGINS
-	? process.env.ALLOWED_ORIGINS.split(',')
+	? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
 	: [
 		'http://localhost:5173',
-		'http://localhost:8081',
-		'http://localhost:9000',
+		'http://localhost:8080',
 	];
 //middlewares
-app.use(cors({ origin: allowedOrigins, credentials: true }));
+// app.use(cors({ origin: allowedOrigins, credentials: true }));
+
+app.use(cors({
+	origin: (origin, callback) => {
+		// allow server-to-server (origin undefined) and whitelisted origins
+		if (!origin || allowedOrigins.includes(origin)) {
+			callback(null, true);
+		} else {
+			callback(new Error('CORS: origin not allowed'));
+		}
+	},
+	credentials: true,
+	methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+	allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 app.use(cookieParser());
 app.use(express.json());
+// app.options("*", cors());
 
 // Api endpoints
 app.get('/api', (req, res) => {
@@ -41,10 +55,20 @@ app.use('/api/product', productRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/address', addressRoutes);
 app.use('/api/order', orderRoutes);
+app.get("/api/health", (req, res) => {
+	res.status(200).json({ status: "ok" });
+});
 
 const PORT = process.env.PORT || 9000;
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
 	connectDB();
 	console.log(process.env.NODE_ENV);
 	console.log(`Server is running on port ${PORT}`);
+});
+
+process.on('SIGTERM', () => {
+	console.log('SIGTERM received — closing HTTP server');
+	server.close(() => {
+		mongoose.connection.close(false, () => process.exit(0));
+	});
 });
