@@ -1,0 +1,23 @@
+# Terraform state — never commit these
+*.tfstate
+*.tfstate.backup
+*.tfstate.lock.info
+
+# Terraform working directory
+.terraform/
+.terraform.lock.hcl
+
+# Sensitive variable files — use environments/*.tfvars instead
+*.tfvars.json
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Plan output files (may contain secrets in plaintext)
+*.tfplan
+plan.out
+
+# Crash log files
+crash.log
+crash.*.log

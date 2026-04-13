@@ -1,0 +1,120 @@
+name: Build & Deploy to AWS ECS
+
+on:
+  push:
+    branches:
+      - main       # deploys to prod
+      - develop    # deploys to dev
+
+env:
+  AWS_REGION: us-east-1
+  APP_NAME: grocery-app
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── Determine environment from branch ──────────────────────────────────
+      - name: Set environment
+        id: env
+        run: |
+          if [[ "${{ github.ref_name }}" == "main" ]]; then
+            echo "ENV=prod" >> $GITHUB_OUTPUT
+            echo "VITE_BACKEND_URL=${{ secrets.PROD_BACKEND_URL }}" >> $GITHUB_OUTPUT
+          else
+            echo "ENV=dev" >> $GITHUB_OUTPUT
+            echo "VITE_BACKEND_URL=${{ secrets.DEV_BACKEND_URL }}" >> $GITHUB_OUTPUT
+          fi
+
+      # ── AWS credentials ────────────────────────────────────────────────────
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region:            ${{ env.AWS_REGION }}
+
+      # ── ECR login ──────────────────────────────────────────────────────────
+      - name: Login to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # ── Build & push backend ───────────────────────────────────────────────
+      - name: Build and push backend image
+        id: backend-build
+        env:
+          ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+          ENV: ${{ steps.env.outputs.ENV }}
+        run: |
+          REPO="${ECR_REGISTRY}/${APP_NAME}-${ENV}-backend"
+          docker build -t "${REPO}:${IMAGE_TAG}" -t "${REPO}:latest" ./backend
+          docker push "${REPO}:${IMAGE_TAG}"
+          docker push "${REPO}:latest"
+          echo "image=${REPO}:${IMAGE_TAG}" >> $GITHUB_OUTPUT
+
+      # ── Build & push frontend ──────────────────────────────────────────────
+      - name: Build and push frontend image
+        id: frontend-build
+        env:
+          ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+          ENV: ${{ steps.env.outputs.ENV }}
+          VITE_BACKEND_URL: ${{ steps.env.outputs.VITE_BACKEND_URL }}
+        run: |
+          REPO="${ECR_REGISTRY}/${APP_NAME}-${ENV}-frontend"
+          docker build \
+            --build-arg VITE_BACKEND_URL="${VITE_BACKEND_URL}" \
+            -t "${REPO}:${IMAGE_TAG}" \
+            -t "${REPO}:latest" \
+            ./client
+          docker push "${REPO}:${IMAGE_TAG}"
+          docker push "${REPO}:latest"
+          echo "image=${REPO}:${IMAGE_TAG}" >> $GITHUB_OUTPUT
+
+      # ── Force new ECS deployments ──────────────────────────────────────────
+      # ECS services use lifecycle { ignore_changes = [task_definition] } in
+      # Terraform, so CI/CD owns the image update step.
+      - name: Deploy backend to ECS
+        env:
+          ENV: ${{ steps.env.outputs.ENV }}
+        run: |
+          aws ecs update-service \
+            --cluster "${APP_NAME}-${ENV}-cluster" \
+            --service  "${APP_NAME}-${ENV}-backend" \
+            --force-new-deployment \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Deploy frontend to ECS
+        env:
+          ENV: ${{ steps.env.outputs.ENV }}
+        run: |
+          aws ecs update-service \
+            --cluster "${APP_NAME}-${ENV}-cluster" \
+            --service  "${APP_NAME}-${ENV}-frontend" \
+            --force-new-deployment \
+            --region ${{ env.AWS_REGION }}
+
+      # ── Wait for stable deployments ────────────────────────────────────────
+      - name: Wait for backend deployment to stabilize
+        env:
+          ENV: ${{ steps.env.outputs.ENV }}
+        run: |
+          aws ecs wait services-stable \
+            --cluster "${APP_NAME}-${ENV}-cluster" \
+            --services "${APP_NAME}-${ENV}-backend" \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Wait for frontend deployment to stabilize
+        env:
+          ENV: ${{ steps.env.outputs.ENV }}
+        run: |
+          aws ecs wait services-stable \
+            --cluster "${APP_NAME}-${ENV}-cluster" \
+            --services "${APP_NAME}-${ENV}-frontend" \
+            --region ${{ env.AWS_REGION }}
