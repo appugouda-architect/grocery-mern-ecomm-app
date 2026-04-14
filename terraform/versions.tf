@@ -15,11 +15,11 @@ terraform {
   #        --key-schema AttributeName=LockID,KeyType=HASH \
   #        --billing-mode PAY_PER_REQUEST --region us-east-1
   backend "s3" {
-    bucket         = "grocery-app-terraform-state"
-    key            = "grocery-app/terraform.tfstate"  # override per env with -backend-config
+    bucket         = "grocery-mern-app-terraform-state"
+    key            = "grocery-mern-app/terraform.tfstate" # override per env with -backend-config
     region         = "us-east-1"
     encrypt        = true
-    dynamodb_table = "grocery-app-terraform-locks"
+    dynamodb_table = "grocery-mern-app-terraform-locks"
   }
 }
 

@@ -19,27 +19,26 @@ await connectCloudinary();
 
 // allow multiple origins
 const allowedOrigins = process.env.ALLOWED_ORIGINS
-	? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
-	: [
-		'http://localhost:5173',
-		'http://localhost:8080',
-	];
+	? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
+	: ['http://localhost:5173', 'http://localhost:8080'];
 //middlewares
 // app.use(cors({ origin: allowedOrigins, credentials: true }));
 
-app.use(cors({
-	origin: (origin, callback) => {
-		// allow server-to-server (origin undefined) and whitelisted origins
-		if (!origin || allowedOrigins.includes(origin)) {
-			callback(null, true);
-		} else {
-			callback(new Error('CORS: origin not allowed'));
-		}
-	},
-	credentials: true,
-	methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-	allowedHeaders: ['Content-Type', 'Authorization'],
-}));
+app.use(
+	cors({
+		origin: (origin, callback) => {
+			// allow server-to-server (origin undefined) and whitelisted origins
+			if (!origin || allowedOrigins.includes(origin)) {
+				callback(null, true);
+			} else {
+				callback(new Error('CORS: origin not allowed'));
+			}
+		},
+		credentials: true,
+		methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+		allowedHeaders: ['Content-Type', 'Authorization'],
+	}),
+);
 app.use(cookieParser());
 app.use(express.json());
 // app.options("*", cors());
@@ -55,12 +54,12 @@ app.use('/api/product', productRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/address', addressRoutes);
 app.use('/api/order', orderRoutes);
-app.get("/api/health", (req, res) => {
-	res.status(200).json({ status: "ok" });
+app.get('/api/health', (req, res) => {
+	res.status(200).json({ status: 'ok' });
 });
 
 const PORT = process.env.PORT || 9000;
-app.listen(PORT, "0.0.0.0", () => {
+app.listen(PORT, '0.0.0.0', () => {
 	connectDB();
 	console.log(process.env.NODE_ENV);
 	console.log(`Server is running on port ${PORT}`);

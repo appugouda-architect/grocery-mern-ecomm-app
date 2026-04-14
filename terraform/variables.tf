@@ -7,6 +7,7 @@ variable "aws_region" {
 variable "environment" {
   type        = string
   description = "Deployment environment: dev or prod"
+  default     = "dev"
   validation {
     condition     = contains(["dev", "prod"], var.environment)
     error_message = "environment must be 'dev' or 'prod'."
@@ -27,16 +28,20 @@ variable "vpc_cidr" {
 variable "availability_zones" {
   type        = list(string)
   description = "List of AZs to deploy into (minimum 2)"
+  default     = ["us-east-1a", "us-east-1b"]
 }
 
 variable "public_subnet_cidrs" {
   type        = list(string)
   description = "CIDR blocks for public subnets (one per AZ)"
+  default     = ["10.0.1.0/24", "10.0.2.0/24"]
 }
 
 variable "private_subnet_cidrs" {
   type        = list(string)
   description = "CIDR blocks for private subnets (one per AZ)"
+  default     = ["10.0.10.0/24", "10.0.11.0/24"]
+
 }
 
 # ── ECR ───────────────────────────────────────────────────────────────────────
@@ -59,21 +64,25 @@ variable "frontend_image_tag" {
 variable "backend_cpu" {
   type        = number
   description = "Fargate CPU units for backend (256, 512, 1024, 2048, 4096)"
+  default     = 256
 }
 
 variable "backend_memory" {
   type        = number
   description = "Fargate memory MiB for backend"
+  default     = 512
 }
 
 variable "frontend_cpu" {
   type        = number
   description = "Fargate CPU units for frontend"
+  default     = 256
 }
 
 variable "frontend_memory" {
   type        = number
   description = "Fargate memory MiB for frontend"
+  default     = 512
 }
 
 variable "backend_desired_count" {
@@ -93,7 +102,7 @@ variable "backend_min_capacity" {
 
 variable "backend_max_capacity" {
   type    = number
-  default = 4
+  default = 2
 }
 
 variable "frontend_min_capacity" {
@@ -103,7 +112,7 @@ variable "frontend_min_capacity" {
 
 variable "frontend_max_capacity" {
   type    = number
-  default = 4
+  default = 2
 }
 
 # ── Networking ────────────────────────────────────────────────────────────────
@@ -121,11 +130,13 @@ variable "frontend_port" {
 variable "node_env" {
   type        = string
   description = "NODE_ENV value (development or production)"
+  default     = "development"
 }
 
 variable "allowed_origins" {
   type        = string
   description = "Comma-separated list of allowed CORS origins (e.g. https://yourdomain.com)"
+  default     = "*"
 }
 
 # ── Secrets ───────────────────────────────────────────────────────────────────

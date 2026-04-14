@@ -36,7 +36,7 @@ resource "aws_security_group" "alb" {
 # Only accepts traffic from the ALB. Outbound to MongoDB Atlas, Cloudinary, AWS APIs.
 resource "aws_security_group" "backend_ecs" {
   name        = "${var.name_prefix}-backend-ecs-sg"
-  description = "Backend ECS tasks — inbound from ALB only"
+  description = "Backend ECS tasks inbound from ALB only"
   vpc_id      = var.vpc_id
 
   ingress {
@@ -72,7 +72,7 @@ resource "aws_security_group" "backend_ecs" {
 # Accepts traffic from ALB on port 80. Nginx serves static files only — no backend calls.
 resource "aws_security_group" "frontend_ecs" {
   name        = "${var.name_prefix}-frontend-ecs-sg"
-  description = "Frontend ECS tasks — inbound from ALB only"
+  description = "Frontend ECS tasks inbound from ALB only"
   vpc_id      = var.vpc_id
 
   ingress {

@@ -12,9 +12,9 @@ private_subnet_cidrs = ["10.0.10.0/24", "10.0.11.0/24"]
 ecr_image_retention_count = 5
 
 # ECS — small sizing for dev
-backend_cpu    = 256
-backend_memory = 512
-frontend_cpu   = 256
+backend_cpu     = 256
+backend_memory  = 512
+frontend_cpu    = 256
 frontend_memory = 512
 
 backend_desired_count  = 1
@@ -25,7 +25,7 @@ frontend_min_capacity  = 1
 frontend_max_capacity  = 2
 
 # App config — update allowed_origins to your dev domain or ALB DNS name
-allowed_origins = "http://localhost:5173,http://localhost:8080"
+allowed_origins = "http://localhost:5173,http://localhost:8080,http://grocery-app-dev-alb-686856092.us-east-1.elb.amazonaws.com"
 
 # Secrets
 create_secret_shells = true

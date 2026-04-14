@@ -1,1 +1,9 @@
 .claude/
+terraform/temp/
+terraform/plan-out/
+.env
+.env.local
+.env.development
+.env.production
+terraform/sessionmanager-bundle/
+.DS_Store
