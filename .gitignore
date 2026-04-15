@@ -1,5 +1,5 @@
 .claude/
-terraform/temp/
+terraform/temp
 terraform/plan-out/
 .env
 .env.local
