@@ -16,7 +16,7 @@ variable "environment" {
 
 variable "app_name" {
   type    = string
-  default = "grocery-app"
+  default = "grocery-mern-app"
 }
 
 # ── VPC ───────────────────────────────────────────────────────────────────────

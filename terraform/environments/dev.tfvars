@@ -20,12 +20,12 @@ frontend_memory = 512
 backend_desired_count  = 1
 frontend_desired_count = 1
 backend_min_capacity   = 1
-backend_max_capacity   = 2
+backend_max_capacity   = 1
 frontend_min_capacity  = 1
-frontend_max_capacity  = 2
+frontend_max_capacity  = 1
 
 # App config — update allowed_origins to your dev domain or ALB DNS name
-allowed_origins = "http://localhost:5173,http://localhost:8080,http://grocery-app-dev-alb-686856092.us-east-1.elb.amazonaws.com"
+allowed_origins = "http://localhost:5173,http://localhost:8080,http://grocery-mern-app-dev-alb-560863399.us-east-1.elb.amazonaws.com"
 
 # Secrets
 create_secret_shells = true

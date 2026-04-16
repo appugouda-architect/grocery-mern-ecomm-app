@@ -36,7 +36,9 @@ resource "aws_ecs_task_definition" "backend" {
         { name = "SELLER_PASSWORD",         valueFrom = "${var.secret_arn}:SELLER_PASSWORD::" },
         { name = "CLOUDINARY_CLOUD_NAME",   valueFrom = "${var.secret_arn}:CLOUDINARY_CLOUD_NAME::" },
         { name = "CLOUDINARY_API_KEY",      valueFrom = "${var.secret_arn}:CLOUDINARY_API_KEY::" },
-        { name = "CLOUDINARY_API_SECRET",   valueFrom = "${var.secret_arn}:CLOUDINARY_API_SECRET::" }
+        { name = "CLOUDINARY_API_SECRET",   valueFrom = "${var.secret_arn}:CLOUDINARY_API_SECRET::" },
+        { name = "RAZORPAY_KEY_ID",         valueFrom = "${var.secret_arn}:RAZORPAY_KEY_ID::" },
+        { name = "RAZORPAY_KEY_SECRET",     valueFrom = "${var.secret_arn}:RAZORPAY_KEY_SECRET::" }
       ]
 
       logConfiguration = {
