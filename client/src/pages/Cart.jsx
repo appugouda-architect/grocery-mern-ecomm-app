@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { dummyAddress } from '../assets/assets';
-import axios from 'axios';
 import toast from 'react-hot-toast';
 import { API_BASE_URL } from '../constants';
 const Cart = () => {
@@ -66,9 +65,10 @@ const Cart = () => {
 	const placeOrder = async () => {
 		try {
 			if (!selectedAddress) {
-				return toast.error('Please select an address');
+				return toast.error('Please select a delivery address');
 			}
-			// place order with cod
+
+			// ── COD ──────────────────────────────────────────────────────────
 			if (paymentOption === 'COD') {
 				const { data } = await axios.post('/api/order/cod', {
 					items: cartArray.map((item) => ({
@@ -84,9 +84,93 @@ const Cart = () => {
 				} else {
 					toast.error(data.message);
 				}
+				return;
+			}
+
+			// ── Online Payment (Razorpay) ────────────────────────────────────
+			if (paymentOption === 'Online') {
+				// Guard: Razorpay checkout SDK must be loaded
+				if (!window.Razorpay) {
+					return toast.error('Payment service unavailable. Please refresh and try again.');
+				}
+
+				// Step 1 — create pending order in DB + get Razorpay order details
+				const { data } = await axios.post('/api/order/razorpay/create', {
+					items: cartArray.map((item) => ({
+						product: item._id,
+						quantity: item.quantity,
+					})),
+					address: selectedAddress._id,
+				});
+
+				if (!data.success) {
+					return toast.error(data.message);
+				}
+
+				// Step 2 — open Razorpay checkout modal
+				const options = {
+					key: data.keyId,
+					amount: data.amount,       // in paise, as returned by backend
+					currency: data.currency,
+					name: 'GreenMart Grocery',
+					description: 'Grocery Order Payment',
+					order_id: data.razorpayOrderId,
+
+					// Step 3 — handler fires only on successful payment authorisation
+					handler: async (response) => {
+						try {
+							const { data: verifyData } = await axios.post(
+								'/api/order/razorpay/verify',
+								{
+									razorpayOrderId: response.razorpay_order_id,
+									razorpayPaymentId: response.razorpay_payment_id,
+									razorpaySignature: response.razorpay_signature,
+									orderId: data.orderId,
+								}
+							);
+
+							if (verifyData.success) {
+								toast.success('Payment successful! Order placed.');
+								setCartItems({});
+								navigate('/my-orders');
+							} else {
+								toast.error(verifyData.message || 'Payment verification failed.');
+							}
+						} catch {
+							toast.error('Payment verification failed. Please contact support.');
+						}
+					},
+
+					prefill: {
+						name: user?.name || '',
+						email: user?.email || '',
+					},
+
+					theme: {
+						color: '#6366f1', // indigo-500 — matches the app colour scheme
+					},
+
+					modal: {
+						// User closed the modal without paying
+						ondismiss: () => {
+							toast.error('Payment cancelled.');
+						},
+					},
+				};
+
+				const rzp = new window.Razorpay(options);
+
+				// Fires when the payment itself fails (wrong OTP, card declined, etc.)
+				rzp.on('payment.failed', (response) => {
+					toast.error(
+						`Payment failed: ${response.error.description || 'Please try again.'}`
+					);
+				});
+
+				rzp.open();
 			}
 		} catch (error) {
-			toast.error(error.message);
+			toast.error(error.message || 'Something went wrong. Please try again.');
 		}
 	};
 	return products.length > 0 && cartItems ? (

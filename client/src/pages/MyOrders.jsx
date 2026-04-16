@@ -1,12 +1,36 @@
 import { useContext, useEffect, useState } from 'react';
-import { dummyOrders } from '../assets/assets';
 import { AppContext } from '../context/AppContext';
 import toast from 'react-hot-toast';
 import { API_BASE_URL } from '../constants';
 
+// Payment badge — colour-coded so users instantly know payment status
+const PaymentBadge = ({ paymentType, isPaid }) => {
+	if (paymentType === 'COD') {
+		return (
+			<span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 border border-gray-300">
+				💵 Cash on Delivery
+			</span>
+		);
+	}
+	if (isPaid) {
+		return (
+			<span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-300">
+				✅ Paid Online
+			</span>
+		);
+	}
+	// Shouldn't appear in the list (filtered server-side) but defensive fallback
+	return (
+		<span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-700 border border-red-300">
+			⏳ Payment Pending
+		</span>
+	);
+};
+
 const MyOrders = () => {
 	const [myOrders, setMyOrders] = useState([]);
 	const { axios, user } = useContext(AppContext);
+
 	const fetchOrders = async () => {
 		try {
 			const { data } = await axios.get('/api/order/user');
@@ -25,52 +49,91 @@ const MyOrders = () => {
 			fetchOrders();
 		}
 	}, [user]);
+
 	return (
-		<div className="mt-12 pb-16">
-			<div>
-				<p className="text-2xl md:text-3xl font-medium">My Orders</p>
-			</div>
+		<div className="mt-12 pb-16 max-w-4xl mx-auto px-4">
+			<p className="text-2xl md:text-3xl font-medium mb-2">My Orders</p>
+
+			{myOrders.length === 0 && (
+				<p className="text-gray-400 mt-10 text-center">No orders yet.</p>
+			)}
 
 			{myOrders.map((order, index) => (
 				<div
 					key={index}
-					className="my-8 border border-gray-300 rounded-lg mb-10 p-4 py-5 max-w-4xl"
+					className="my-6 border border-gray-200 rounded-xl shadow-sm overflow-hidden"
 				>
-					<p className="flex justify-between items-center gap-6 ">
-						<span>orderId :{order._id} </span>
-						<span>payment :{order.paymentType} </span>
-						<span>Total Amount :${order.amount} </span>
-					</p>
-					{order.items.map((item, index) => (
+					{/* Order header */}
+					<div className="flex flex-wrap items-center justify-between gap-3 bg-gray-50 px-5 py-3 border-b border-gray-200">
+						<div className="flex flex-col">
+							<span className="text-xs text-gray-400 uppercase tracking-wide">Order ID</span>
+							<span className="text-sm font-mono text-gray-600">{order._id}</span>
+						</div>
+
+						<PaymentBadge paymentType={order.paymentType} isPaid={order.isPaid} />
+
+						<div className="flex flex-col items-end">
+							<span className="text-xs text-gray-400 uppercase tracking-wide">Total</span>
+							<span className="text-sm font-semibold text-gray-800">
+								₹{order.amount}
+							</span>
+						</div>
+					</div>
+
+					{/* Order items */}
+					{order.items.map((item, idx) => (
 						<div
-							key={index}
-							className={`relative bg-white text-gray-800/70 ${
-								order.items.length !== index + 1 && 'border-b'
-							} border-gray-300 flex flex-col md:flex-row md:items-center  justify-between p-4 py-5 w-full max-w-4xl`}
+							key={idx}
+							className={`flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white px-5 py-4 ${
+								idx !== order.items.length - 1 ? 'border-b border-gray-100' : ''
+							}`}
 						>
-							<div className="flex items-center mb-4 md:mb-0">
-								<div className="p-4 rounded-lg">
+							{/* Product info */}
+							<div className="flex items-center gap-4">
+								<div className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden border border-gray-100 bg-gray-50 flex items-center justify-center">
 									<img
 										src={`${API_BASE_URL}/images/${item.product.image[0]}`}
-										alt=""
-										className="w-16 h-16"
+										alt={item.product.name}
+										className="w-full h-full object-cover"
 									/>
 								</div>
-
-								<div className="ml-4">
-									<h2 className="text-xl font-medium">{item.product.name}</h2>
-									<p>{item.product.category}</p>
+								<div>
+									<h2 className="text-base font-medium text-gray-800">
+										{item.product.name}
+									</h2>
+									<p className="text-sm text-gray-400">{item.product.category}</p>
 								</div>
 							</div>
 
-							<div className=" text-lg font-medium">
-								<p>Quantity:{item.quantity || '1'}</p>
-								<p>Status:{order.status}</p>
-								<p>Date:{new Date(order.createdAt).toLocaleString()}</p>
+							{/* Order meta */}
+							<div className="flex flex-wrap gap-6 text-sm text-gray-500">
+								<div>
+									<span className="text-xs text-gray-400 block">Qty</span>
+									<span className="font-medium text-gray-700">{item.quantity}</span>
+								</div>
+								<div>
+									<span className="text-xs text-gray-400 block">Status</span>
+									<span className="font-medium text-indigo-600">{order.status}</span>
+								</div>
+								<div>
+									<span className="text-xs text-gray-400 block">Date</span>
+									<span className="font-medium text-gray-700">
+										{new Date(order.createdAt).toLocaleDateString('en-IN', {
+											day: '2-digit',
+											month: 'short',
+											year: 'numeric',
+										})}
+									</span>
+								</div>
 							</div>
-							<p className=" text-lg">
-								Amount:${item.product.offerPrice * item.quantity}
-							</p>
+
+							{/* Item total */}
+							<div className="text-right">
+								<span className="text-xs text-gray-400 block">Item Total</span>
+								<span className="text-base font-semibold text-gray-800">
+									₹{item.product.offerPrice * item.quantity}
+								</span>
+							</div>
 						</div>
 					))}
 				</div>
